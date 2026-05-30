@@ -9,3 +9,11 @@
 
 # macOS
 .DS_Store
+
+# Old H.265 backups
+*.h265
+*.h265.*
+# HEIC originals (JPG versions exist)
+*.HEIC
+# Screenshots
+截屏2025-*
