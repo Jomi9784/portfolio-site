@@ -163,6 +163,29 @@ nav.scrolled .logo{color:#e2ddd6}
 @keyframes heroReveal{to{opacity:1;transform:translateY(0)}}
 @keyframes scrollBreathe{0%,100%{transform:scaleY(0.4);opacity:0.2}50%{transform:scaleY(1);opacity:0.7}}
 
+/* ─── Hero video play button (WeChat/mobile support) ─── */
+.hero-play-btn{
+  position:absolute;inset:0;z-index:3;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity 0.6s
+}
+.hero-play-btn.hidden{opacity:0;pointer-events:none}
+.hero-play-btn .play-icon{
+  width:64px;height:64px;border-radius:50%;
+  background:rgba(226,221,214,0.15);
+  backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform 0.3s,background 0.3s
+}
+.hero-play-btn .play-icon svg{
+  width:24px;height:24px;fill:none;stroke:rgba(226,221,214,0.9);
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+  transform:translateX(1px)
+}
+.hero-play-btn:active .play-icon{transform:scale(0.92)}
+@media(max-width:600px){.hero-play-btn .play-icon{width:52px;height:52px}}
+
+
 /* ─── SECTION ─── */
 .section{
   max-width:1400px;margin:0 auto;
@@ -440,10 +463,15 @@ footer .f-socials a:hover{color:#e2ddd6}
 <section class="hero">
   <div class="hero-video-wrap">
     <!-- Hero video - auto play with mobile support -->
-    <video autoplay muted loop playsinline preload="auto"
+    <video muted loop playsinline preload="auto" id="heroVideo"
       poster="poster-tommy-autumn.jpg">
       <source src="https://cdn.jsdelivr.net/gh/Jomi9784/portfolio-videos@main/videos/commercial-2.mp4" type="video/mp4">
     </video>
+    <div class="hero-play-btn" id="heroPlayBtn">
+      <div class="play-icon">
+        <svg viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3" fill="rgba(226,221,214,0.9)" stroke="none"/></svg>
+      </div>
+    </div>
   </div>
   <div class="hero-grain"></div>
   <div class="hero-gradient"></div>
@@ -789,10 +817,22 @@ const revealObserver = new IntersectionObserver((entries)=>{
 document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
 
 
-// ─── Hero video mobile fallback ───
+// ─── Hero video + WeChat support ───
 (function(){
-  var hv = document.querySelector('.hero-video-wrap video');
+  var hv = document.getElementById('heroVideo');
+  var btn = document.getElementById('heroPlayBtn');
   if(!hv) return;
+
+  // Try WeChat autoplay bridge
+  function tryWeChatPlay(){
+    if(typeof WeixinJSBridge == 'undefined') return false;
+    WeixinJSBridge.invoke('getNetworkType',{},function(){
+      hv.play().catch(function(){});
+    });
+    return true;
+  }
+
+  // Retry video source on error
   hv.addEventListener('error', function(){
     var src = this.querySelector('source');
     if(src && !src.dataset.retried) {
@@ -801,9 +841,48 @@ document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
       this.load();
     }
   });
-  document.addEventListener('touchstart', function(){
-    if(hv.paused) hv.play().catch(function(){});
-  }, {once: true});
+
+  // When video can play, try to autoplay (works on desktop, may fail on WeChat/mobile)
+  hv.addEventListener('canplay', function(){
+    this.play().catch(function(){});
+  });
+
+  // Play button click
+  if(btn){
+    btn.addEventListener('click', function(){
+      hv.play().then(function(){
+        btn.classList.add('hidden');
+      }).catch(function(){});
+    });
+  }
+
+  // Hide play button when video plays
+  hv.addEventListener('playing', function(){
+    if(btn) btn.classList.add('hidden');
+  });
+
+  // Show play button when video pauses (not for seeking)
+  hv.addEventListener('pause', function(){
+    if(btn && !this.ended) btn.classList.remove('hidden');
+  });
+
+  // On first user interaction, try to play (catches WeChat tap-to-play)
+  function firstTouch(){
+    hv.play().then(function(){
+      if(btn) btn.classList.add('hidden');
+    }).catch(function(){});
+    document.removeEventListener('touchstart', firstTouch);
+    document.removeEventListener('click', firstTouch);
+  }
+  document.addEventListener('touchstart', firstTouch);
+  document.addEventListener('click', firstTouch);
+
+  // WeChat JS bridge ready
+  if(typeof WeixinJSBridge != 'undefined'){
+    tryWeChatPlay();
+  } else if(document.addEventListener){
+    document.addEventListener('WeixinJSBridgeReady', tryWeChatPlay, false);
+  }
 })();
 
 // ─── Initial render ───
