@@ -1,0 +1,68 @@
+[build]
+publish = "."
+
+[build.processing]
+skip_processing = false
+
+[build.processing.css]
+bundle = false
+minify = true
+
+[build.processing.js]
+bundle = false
+minify = true
+
+[build.processing.html]
+pretty_urls = true
+
+[build.processing.images]
+compress = true
+
+[[headers]]
+for = "/*"
+[headers.values]
+Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
+
+[[headers]]
+for = "fonts/*"
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+for = "poster-*"
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+for = "*.mp4"
+[headers.values]
+Cache-Control = "public, max-age=2592000, immutable"
+Accept-Ranges = "bytes"
+
+[[headers]]
+for = "*.M4V"
+[headers.values]
+Cache-Control = "public, max-age=2592000, immutable"
+Accept-Ranges = "bytes"
+
+[[headers]]
+for = "*.jpg"
+[headers.values]
+Cache-Control = "public, max-age=2592000, immutable"
+
+[[headers]]
+for = "*.JPG"
+[headers.values]
+Cache-Control = "public, max-age=2592000, immutable"
+
+[[headers]]
+for = "*.png"
+[headers.values]
+Cache-Control = "public, max-age=2592000, immutable"
+
+# Image CDN proxy — serve all images through Netlify Image CDN for auto WebP/AVIF
+[[redirects]]
+from = "/img/*"
+to = "/.netlify/images?url=/:splat&fm=webp&q=80"
+status = 200
+force = false

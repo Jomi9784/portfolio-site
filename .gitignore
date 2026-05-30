@@ -1,0 +1,11 @@
+# Local Netlify folder
+.netlify
+
+# Video files - hosted on GitHub CDN
+*.mp4
+*.M4V
+*.MP4
+*.mov
+
+# macOS
+.DS_Store
