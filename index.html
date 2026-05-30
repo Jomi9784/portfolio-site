@@ -209,8 +209,8 @@ nav.scrolled .logo{color:#e2ddd6}
 .work-card{
   position:relative;cursor:pointer;overflow:hidden;
   aspect-ratio:16/9;
-  background:#111111;
-  border:1px solid rgba(226,221,214,0.04);
+  background:#1a1a1a;
+  border:1px solid rgba(226,221,214,0.06);
   border-radius:4px;
   transition:border-color 0.4s,transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94)
 }
@@ -219,7 +219,10 @@ nav.scrolled .logo{color:#e2ddd6}
 .work-card.span-2{grid-column:span 2}
 .work-card .poster-wrap{
   position:absolute;inset:-1px;overflow:hidden;
-  border-radius:4px
+  border-radius:4px;
+  background:linear-gradient(110deg,#181818 30%,#232323 50%,#181818 70%);
+  background-size:200% 100%;
+  animation:cardShimmer 2s ease-in-out infinite
 }
 .work-card .poster-wrap img{
   transition:transform 0.9s cubic-bezier(0.25,0.46,0.45,0.94);
@@ -412,6 +415,10 @@ footer .f-socials a:hover{color:#e2ddd6}
 /* ─── REVEAL ─── */
 .reveal{opacity:0;transform:translateY(24px);transition:opacity 0.8s cubic-bezier(0.25,0.46,0.45,0.94),transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94)}
 .reveal.visible{opacity:1;transform:translateY(0)}
+
+/* ─── CARD ENTRANCE ─── */
+@keyframes cardFadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes cardShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 </style>
 </head>
 <body>
@@ -534,14 +541,14 @@ footer .f-socials a:hover{color:#e2ddd6}
 const works = [
   // ── Commercial Videos ──
   {title:'Commercial 1',category:'Commercial',file:'https://raw.githubusercontent.com/Jomi9784/portfolio-videos/main/videos/commercial-1.mp4',poster:'poster-commercial-1.jpg',duration:'0:40'},
-  {title:'Commercial 2',category:'Commercial',file:'https://raw.githubusercontent.com/Jomi9784/portfolio-videos/main/videos/commercial-2.mp4',poster:'poster-commercial-2.jpg',duration:'0:45'},
+  {title:'No. 2',category:'Cinematic',file:'https://raw.githubusercontent.com/Jomi9784/portfolio-videos/main/videos/no-2.mp4',poster:'poster-no-2.jpg',duration:'0:30'},
   {title:'Commercial 3',category:'Commercial',file:'https://raw.githubusercontent.com/Jomi9784/portfolio-videos/main/videos/commercial-3.mp4',poster:'poster-commercial-3.jpg',duration:'0:30'},
   {title:'Commercial 4',category:'Commercial',file:'https://raw.githubusercontent.com/Jomi9784/portfolio-videos/main/videos/commercial-4.mp4',poster:'poster-commercial-4.jpg',duration:'0:30'},
   {title:'Commercial 5',category:'Commercial',file:'https://raw.githubusercontent.com/Jomi9784/portfolio-videos/main/videos/commercial-5.mp4',poster:'poster-commercial-5.jpg',duration:'0:10'},
 
   // ── Cinematic Videos ──
   {title:'No. 1',category:'Cinematic',file:'https://raw.githubusercontent.com/Jomi9784/portfolio-videos/main/videos/no-1.mp4',poster:'poster-no-1.jpg',duration:'0:30',span:2},
-  {title:'No. 2',category:'Cinematic',file:'https://raw.githubusercontent.com/Jomi9784/portfolio-videos/main/videos/no-2.mp4',poster:'poster-no-2.jpg',duration:'0:30'},
+  {title:'Commercial 2',category:'Commercial',file:'https://raw.githubusercontent.com/Jomi9784/portfolio-videos/main/videos/commercial-2.mp4',poster:'poster-commercial-2.jpg',duration:'0:45'},
   {title:'No. 3',category:'Cinematic',file:'https://raw.githubusercontent.com/Jomi9784/portfolio-videos/main/videos/no-3.mp4',poster:'poster-no-3.jpg',duration:'0:30',portrait:true},
   {title:'No. 4',category:'Cinematic',file:'https://raw.githubusercontent.com/Jomi9784/portfolio-videos/main/videos/no-4.mp4',poster:'poster-no-4.jpg',duration:'0:30'},
   {title:'No. 5',category:'Cinematic',file:'1053_raw.MP4',poster:'poster-no-5.jpg',duration:'0:34'},
@@ -632,6 +639,25 @@ const grid = document.getElementById('worksGrid');
 let currentFilter = 'all';
 let overlayIndex = -1;
 
+function setFilter(filter){
+  var m = document.getElementById('filter-call-marker') || (function(){
+    var d = document.createElement('div');
+    d.id = 'filter-call-marker';
+    d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#ff0;color:#000;font:14px monospace;padding:6px 12px;text-align:center';
+    document.body.prepend(d);
+    return d;
+  })();
+  m.textContent = 'setFilter called: "' + filter + '" at ' + new Date().toLocaleTimeString() + ' | grid children before: ' + document.getElementById('worksGrid').children.length;
+  
+  currentFilter = filter;
+  document.querySelectorAll('#filterBar button, #filterNav a').forEach(el => {
+    el.classList.toggle('active', el.dataset.filter === filter);
+  });
+  renderWorks(filter);
+  
+  m.textContent += ' | after: ' + document.getElementById('worksGrid').children.length;
+}
+
 function renderWorks(filter){
   grid.innerHTML = '';
   const allFiltered = filter === 'all' ? works : works.filter(w => w.category === filter);
@@ -648,7 +674,7 @@ function renderWorks(filter){
     if(isStill) card.classList.add('still-card');
 
     card.innerHTML = `
-      <div class="poster-wrap"><img loading="lazy" src="${w.poster}" alt="${w.title}"></div>
+      <div class="poster-wrap"><img src="${w.poster}" alt="${w.title}" loading="lazy"></div>
       <div class="card-label">
         <div class="card-cat">${w.category}</div>
         <div class="card-title">${w.title}</div>
@@ -660,34 +686,12 @@ function renderWorks(filter){
     card.addEventListener('click', ()=> openOverlay(realIdx));
 
     grid.appendChild(card);
-
-    // Staggered entrance
-    requestAnimationFrame(()=>{
-      card.style.opacity='0';card.style.transform='translateY(16px)';
-      card.style.transition='opacity 0.6s ease-out,transform 0.6s ease-out,border-color 0.4s';
-      requestAnimationFrame(()=>{
-        setTimeout(()=>{
-          card.style.opacity='1';card.style.transform='translateY(0)';
-        }, i * 50);
-      });
-    });
   });
 }
-renderWorks('all');
 
-// ─── Filter ───
-function setFilter(filter){
-  currentFilter = filter;
-  document.querySelectorAll('#filterBar button, #filterNav a').forEach(el => {
-    el.classList.toggle('active', el.dataset.filter === filter);
-  });
-  renderWorks(filter);
-}
-document.querySelectorAll('#filterBar button').forEach(btn => {
-  btn.addEventListener('click', ()=> setFilter(btn.dataset.filter));
-});
-document.querySelectorAll('#filterNav a').forEach(a => {
-  a.addEventListener('click', ()=> setFilter(a.dataset.filter));
+// ─── Filter event listeners ───
+document.querySelectorAll('#filterBar button, #filterNav a').forEach(el => {
+  el.addEventListener('click', ()=> setFilter(el.dataset.filter));
 });
 
 // ─── Overlay ───
@@ -782,7 +786,8 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 });
 
 // ─── Section reveal on scroll ───
-document.querySelectorAll('.section').forEach(el => el.classList.add('reveal'));
+// Apply reveal only to about section (skip works section to avoid parent-opacity issues)
+document.querySelectorAll('.section:not(#works)').forEach(el => el.classList.add('reveal'));
 const revealObserver = new IntersectionObserver((entries)=>{
   entries.forEach(entry => {
     if(entry.isIntersecting){
@@ -792,6 +797,29 @@ const revealObserver = new IntersectionObserver((entries)=>{
   });
 }, {threshold:0.1, rootMargin:'0px 0px -60px 0px'});
 document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+// ─── Initial render ───
+try {
+  setFilter('all');
+} catch(e) {
+  const dbg = document.createElement('div');
+  dbg.id = 'dbg-status';
+  dbg.style.cssText = 'font-size:13px;color:#ff6b6b;font-family:monospace;margin-top:6px;padding:6px 10px;background:rgba(255,0,0,0.08);border:1px solid rgba(255,0,0,0.15)';
+  dbg.textContent = '⚠ Error: ' + e.message;
+  document.querySelector('#works .section-header .left').prepend(dbg);
+}
+// Show grid child count
+(function(){
+  const grid = document.getElementById('worksGrid');
+  if(!grid) return;
+  const badge = document.createElement('div');
+  badge.id = 'dbg-status';
+  badge.style.cssText = 'font-size:11px;color:rgba(226,221,214,0.25);font-family:monospace;margin-top:4px';
+  badge.textContent = 'Cards: ' + grid.children.length;
+  const left = document.querySelector('#works .section-header .left');
+  if(left) left.appendChild(badge);
+})();
+
 </script>
 </body>
 </html>
